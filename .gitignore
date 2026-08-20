@@ -2,3 +2,5 @@
 Thumbs.db
 *.tmp
 .skills-manager.lock
+__pycache__/
+*.pyc
