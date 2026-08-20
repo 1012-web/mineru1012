@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f8d38ab9-7f57-4359-a3aa-3332e3555098",
+  "path": "wp-wpcli-and-ops",
+  "path_key": "wp-wpcli-and-ops",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-wpcli-and-ops",
+    "branch": null
+  }
+}

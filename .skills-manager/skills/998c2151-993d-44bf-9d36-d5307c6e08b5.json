@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "998c2151-993d-44bf-9d36-d5307c6e08b5",
+  "path": "wp-abilities-audit",
+  "path_key": "wp-abilities-audit",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-abilities-audit",
+    "branch": null
+  }
+}

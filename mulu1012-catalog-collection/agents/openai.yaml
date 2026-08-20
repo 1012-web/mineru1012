@@ -1,4 +1,0 @@
-interface:
-  display_name: "目录1012题录搜集"
-  short_description: "搜集、查重、填充并批量导入历史学数据库题录到工作台"
-  default_prompt: "使用 $mulu1012-catalog-collection 搜集并整理一批历史学数据库题录，生成审核包后等待我确认上传。"

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6cb44a49-fc71-4151-941a-6820cbd7bd25",
+  "path": "wp-rest-api",
+  "path_key": "wp-rest-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-rest-api",
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d25f093c-0b47-48cb-ad9b-edd415c0d952",
+  "path": "obsidian-bases",
+  "path_key": "obsidian-bases",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/kepano/obsidian-skills",
+    "subpath": "skills\\obsidian-bases",
+    "branch": null
+  }
+}

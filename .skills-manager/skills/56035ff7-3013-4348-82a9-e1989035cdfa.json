@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "56035ff7-3013-4348-82a9-e1989035cdfa",
+  "path": "wp-abilities-api",
+  "path_key": "wp-abilities-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-abilities-api",
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b1e937d1-950e-4069-b02d-bdbfde1364bf",
+  "path": "wordpress-router",
+  "path_key": "wordpress-router",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wordpress-router",
+    "branch": null
+  }
+}
