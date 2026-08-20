@@ -16,9 +16,10 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _common import (CIRC_RE, block_text, body_blocks, die, find_files, footnote_blocks,
-                     image_paths, join_lines, line_texts, load_blocklist, load_layout,
-                     page_number_map, strip_tags, sub_blocks_by_type, write_report)
+from _common import (ANCHOR_RE, CIRC, CIRC_RE, FLOAT_PREFIX, block_text, body_blocks, die, find_files,
+                     footnote_blocks, image_paths, is_break, join_lines, line_texts,
+                     load_blocklist, load_layout, page_number_map, strip_tags,
+                     sub_blocks_by_type, write_report)
 
 META_PREFIX = ('收稿日期', '作者简介', '基金项目', '通信作者', '引用格式', '作者单位', 'DOI')
 CJK = r'㐀-䶿一-鿿'
@@ -46,10 +47,40 @@ def tidy_footnote(t):
     return re.sub(r'\s{2,}', ' ', t).strip()
 
 
-def collect_footnotes(layout, pnum):
-    """按页序取出脚注。开头没有圈码的条目照位置保留——那多半是圈码识别丢了。"""
+LEAD_CIRC_RE = re.compile('^[' + CIRC + ']+')
+
+
+def parse_add_footnote(vals):
+    """--add-footnote 页序号:圈码序号:正文 -> {页序号: [(圈码序号-1, 正文), ...]}"""
+    add = {}
+    for v in vals:
+        parts = v.split(':', 2)
+        if len(parts) != 3 or not parts[0].strip().isdigit() or not parts[1].strip().isdigit():
+            die('--add-footnote 格式应为 页序号:圈码序号:正文，收到 %r' % v)
+        add.setdefault(int(parts[0]), []).append((int(parts[1]) - 1, parts[2].strip()))
+    return add
+
+
+def collect_footnotes(layout, pnum, add=None):
+    """按页序取出脚注。开头没有圈码的条目照位置保留——那多半是圈码识别丢了。
+
+    两个坑，中文书里都很常见：
+
+    一、**一条脚注可能领起多个圈码**——「②③⑥⑦⑧《史记·商君列传》。」是一条块，
+    却对应正文里五个引用。只当成一条，其后所有脚注编号会整体错位。要拆成五条。
+
+    二、拆完还得**按圈码值在页内重排**。上例那页的块序是 ①／②③⑥⑦⑧／④／⑤，
+    照块序输出就成了 1,2,3,6,7,8,4,5，与正文的 ①②③④⑤⑥⑦⑧ 对不上。
+    只在该页每条都认出了圈码时才排序；有认不出的就保持块序，宁可不动也别乱排。
+
+    add 是 --add-footnote 回补的条目：MinerU 偶尔会整条漏掉一个脚注块，
+    或把它误判成正文。漏一条，其后所有编号就错一位，必须在这里补回来。
+    """
     notes, meta = [], []
+    split, added = [], []
+    add = add or {}
     for pi, pg in enumerate(layout):
+        page_notes = []
         for b in footnote_blocks(pg):
             raw = b.get('text') or join_lines(line_texts(b))
             t = strip_tags(raw).strip()
@@ -58,8 +89,22 @@ def collect_footnotes(layout, pnum):
             if t.startswith(META_PREFIX):
                 meta.append((pnum[pi], tidy_footnote(t)))
                 continue
-            notes.append((pnum[pi], tidy_footnote(CIRC_RE.sub('', t, count=1) if CIRC_RE.match(t) else t)))
-    return notes, meta
+            m = LEAD_CIRC_RE.match(t)
+            if not m:
+                page_notes.append((None, tidy_footnote(t)))
+                continue
+            body = tidy_footnote(t[m.end():])
+            if len(m.group(0)) > 1:
+                split.append((pnum[pi], m.group(0), body))
+            for c in m.group(0):
+                page_notes.append((CIRC.index(c), body))
+        for k, t in add.get(pi, []):
+            page_notes.append((k, t))
+            added.append((pnum[pi], CIRC[k] if k < len(CIRC) else '?', t))
+        if page_notes and all(k is not None for k, _ in page_notes):
+            page_notes.sort(key=lambda kv: kv[0])
+        notes += [(pnum[pi], t) for _, t in page_notes]
+    return notes, meta, split, added
 
 
 # 标题编号形态由粗到细。MinerU 常把所有标题都标成 level=2（实测 120–154 个全一样），
@@ -98,6 +143,38 @@ def make_heading_level(layout):
     return level_of, [(n, mapping[n]) for n, _ in present]
 
 
+def join_page_breaks(blocks):
+    """接回 mergeConnections 漏掉的跨页断段。
+
+    MinerU 只在自己记录了合并关系时才接段；实测一本 200 页的书还会剩 15—35 处
+    没接上的。这些地方极易被误当成「缺标点」而补一个句号——那是用标点掩盖数据丢失。
+
+    两个必须处理的细节（都是踩出来的）：
+      1. 判断句末前要先剥掉尾部的 [^n]，否则「…近代化。[^11]」会被当成断句；
+      2. 图和图注可能正夹在断点中间，要跨过去，接好后把图放到该段之后。
+    """
+    out, i, joined = [], 0, []
+    while i < len(blocks):
+        m = ANCHOR_RE.match(blocks[i].strip())
+        if m and out and int(m.group(1)) > 0:
+            j = i + 1
+            floats = []
+            while j < len(blocks) and blocks[j].strip().startswith(FLOAT_PREFIX):
+                floats.append(blocks[j])
+                j += 1
+            if j < len(blocks):
+                prev, nxt = out[-1].strip(), blocks[j].strip()
+                if is_break(prev, nxt):
+                    joined.append((int(m.group(1)), prev[-26:], nxt[:26], len(floats)))
+                    out[-1] = prev + blocks[i].strip() + nxt
+                    out += floats
+                    i = j + 1
+                    continue
+        out.append(blocks[i])
+        i += 1
+    return out, joined
+
+
 def body_margins(page):
     """一页正文的左右边界：取多行文本块 x0 / x1 的众数。
 
@@ -121,8 +198,12 @@ def main():
     ap.add_argument('-o', '--out', required=True)
     ap.add_argument('--skip-marker', default='',
                     help='非脚注的圈码全局序号，逗号分隔（从 _markers.tsv 认定）')
+    ap.add_argument('--add-footnote', action='append', default=[], metavar='页序号:圈码序号:正文',
+                    help='回补 MinerU 漏掉的脚注，可重复。页序号是 layout.json 的 page_idx')
     ap.add_argument('--quote-indent', type=float, default=10.0,
                     help='相对左边界缩进超过此值（pt）视为疑似引文块')
+    ap.add_argument('--no-join', action='store_true',
+                    help='不接合 mergeConnections 漏掉的跨页断段（默认接合，清单见构建报告）')
     a = ap.parse_args()
 
     if not os.path.isdir(a.dir):
@@ -233,7 +314,11 @@ def main():
                     lines.append('<!--p.%s-->' % pnum[pi])
             lines.append(body)
 
-    notes, meta = collect_footnotes(layout, pnum)
+    joined = []
+    if not a.no_join:
+        lines, joined = join_page_breaks(lines)
+
+    notes, meta, split, added = collect_footnotes(layout, pnum, parse_add_footnote(a.add_footnote))
 
     head = ['---',
             '# 期刊/图书元数据——从 _probe.txt 的页眉与期刊元信息补全后删掉本行注释',
@@ -262,6 +347,27 @@ def main():
     else:
         R.append('-> 引用与定义数量一致。\n')
 
+    if added:
+        R.append('\n## 按 --add-footnote 回补的脚注，共 %d 条\n' % len(added))
+        R.append('  这些是 MinerU 整条漏掉或误判成正文的注，已核对原刊后补回。**必须写进交付报告。**\n')
+        for pn, c, t in added:
+            R.append('  p.%-5s %s %s\n' % (pn, c, t[:70]))
+
+    if split:
+        R.append('\n## 领起多个圈码、已拆成多条的脚注，共 %d 处\n' % len(split))
+        R.append('  原刊一条注管几个引用（「②③④《史记·商君列传》。」），拆开后每个圈码各得一条同文的注。\n')
+        R.append('  拆出来的条目按圈码值在页内重排过，因为原书这类块的排列并不是 ①②③④。\n')
+        for pn, marks, t in split:
+            R.append('  p.%-5s %-8s %s\n' % (pn, marks, t[:60]))
+
+    if joined:
+        R.append('\n## 已接回的跨页断段，共 %d 处\n' % len(joined))
+        R.append('  这些是 mergeConnections 没记录、但上页结尾无句末标点、下页开头不像新段的地方。\n')
+        R.append('  已按判据接合并在接缝处保留页码锚点。抽查几条确认没有误接。\n')
+        R.append('  「跨图 N」表示断点中间夹着 N 个图/图注块，已跨过并把图放到该段之后。\n')
+        for pn, l, r, nf in joined:
+            R.append('  p.%-5s …%s  ▷接▷  %s…%s\n' % (pn, l, r, ('  跨图 %d' % nf) if nf else ''))
+
     if meta:
         R.append('\n## 应移入 frontmatter 的期刊元信息\n')
         for pn, t in meta:
@@ -283,8 +389,8 @@ def main():
     R.append('  3. 还原正文标点（脚注不补）\n')
     R.append('  4. verify.py 校验 -> diff_report.py 出改动报告\n')
     write_report(os.path.join(a.dir, '_build_report.txt'), ''.join(R))
-    print('blocks=%d footnote_refs=%d footnote_defs=%d quote_candidates=%d'
-          % (len(lines), state['used'], len(notes), len(quote_candidates)))
+    print('blocks=%d footnote_refs=%d footnote_defs=%d quote_candidates=%d joined=%d'
+          % (len(lines), state['used'], len(notes), len(quote_candidates), len(joined)))
 
 
 if __name__ == '__main__':

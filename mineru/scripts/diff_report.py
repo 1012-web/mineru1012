@@ -2,15 +2,20 @@
 
 用法:
     python diff_report.py <mineru输出目录> <成品.md>
+    python diff_report.py d1,d2,d3 "书/*.md"          # 一本书被切成几段解析、成品又分了章
 
 剔除标点、空格、Markdown 语法后仍存在的差异 = 实质改动。
 补标点不会出现在结果里；动了字一定会。
+
+多目录/多文件时两侧各自按给定顺序拼接后比对——顺序必须与原书一致，
+否则整篇会被判成「删了一大段又增了一大段」。
 
 改动报告必须由这个脚本生成，不能靠回忆——凭印象列清单一定会漏，
 而漏掉的往往正是最该报告的那条。
 """
 import argparse
 import difflib
+import glob
 import os
 import re
 import sys
@@ -55,7 +60,12 @@ def source_sections(layout):
     return body, ''.join(notes)
 
 
-def compare(name, src, out, R):
+def cut(s, n):
+    """整段卷首/目录之类的大块差异会长到上万字符，原样印出来没人读得下去。"""
+    return s if len(s) <= n else '%s……〔中略 %d 字〕……%s' % (s[:n // 2], len(s) - n, s[-n // 2:])
+
+
+def compare(name, src, out, R, maxlen=160):
     a, b = significant(src), significant(out)
     rows = []
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
@@ -72,32 +82,58 @@ def compare(name, src, out, R):
     if not rows:
         R.append('-> 零改动。\n')
         return 0
+    moved = sum(1 for tag, s, t, _, _ in rows if s and s in out) \
+        + sum(1 for tag, s, t, _, _ in rows if t and t in src)
+    if moved:
+        R.append('其中 %d 处的文字在对侧仍然存在——多半是位置迁移（图注随段落接合而移位、\n'
+                 '元信息搬进 frontmatter），不是内容增删。核对时先把这类配对消掉。\n' % moved)
     for tag, s, t, L, Rr in rows:
         label = {'replace': '改', 'insert': '增', 'delete': '删'}.get(tag, tag)
-        R.append('\n[%s] 源「%s」-> 成品「%s」\n' % (label, s, t))
-        R.append('     …%s▶%s◀%s…\n' % (L, s, Rr))
+        R.append('\n[%s] 源「%s」-> 成品「%s」\n' % (label, cut(s, maxlen), cut(t, maxlen)))
+        R.append('     …%s▶%s◀%s…\n' % (L, cut(s, 60), Rr))
     return len(rows)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('dir')
-    ap.add_argument('md')
+    ap.add_argument('dir', help='MinerU 输出目录；多个用逗号分隔，顺序须与原书一致')
+    ap.add_argument('md', help='成品 md；多个用逗号分隔，或用通配符（按文件名排序）')
+    ap.add_argument('--max-diff-chars', type=int, default=160, help='单条差异的打印上限')
     a = ap.parse_args()
-    if not os.path.isdir(a.dir):
-        die('目录不存在: ' + a.dir)
 
-    layout = load_layout(a.dir)
-    src_body, src_notes = source_sections(layout)
-    md_body, md_notes = md_sections(open(a.md, encoding='utf-8').read())
+    dirs = [x for x in a.dir.split(',') if x.strip()]
+    mds = []
+    for pat in a.md.split(','):
+        hit = sorted(glob.glob(pat)) if any(c in pat for c in '*?[') else [pat]
+        if not hit:
+            die('没有匹配到成品文件: ' + pat)
+        mds += hit
+    for d in dirs:
+        if not os.path.isdir(d):
+            die('目录不存在: ' + d)
+
+    src_body, src_notes = '', ''
+    for d in dirs:
+        b, n = source_sections(load_layout(d))
+        src_body += b
+        src_notes += n
+    md_body, md_notes = '', ''
+    for f in mds:
+        b, n = md_sections(open(f, encoding='utf-8').read())
+        md_body += '\n' + b
+        md_notes += '\n' + n
 
     R = ['# 改动报告\n']
-    R.append('源: %s\n成品: %s\n' % (os.path.abspath(a.dir), os.path.abspath(a.md)))
+    R.append('源: %s\n' % '\n     '.join(os.path.abspath(d) for d in dirs))
+    R.append('成品: %s\n' % '\n       '.join(os.path.abspath(f) for f in mds))
     R.append('\n比对口径：剔除标点、空格、Markdown 语法后逐字符比对。\n')
     R.append('补标点不会出现在下面；动了字一定会出现。\n')
+    if len(dirs) > 1 or len(mds) > 1:
+        R.append('\n两侧各自按上面的顺序拼接后比对。卷首、版权页、目录、书末书签这些\n')
+        R.append('没进成品的部分会整块出现在「删」里，那是预期的——确认一遍就行。\n')
 
-    n1 = compare('正文', src_body, md_body, R)
-    n2 = compare('脚注', src_notes, md_notes, R)
+    n1 = compare('正文', src_body, md_body, R, a.max_diff_chars)
+    n2 = compare('脚注', src_notes, md_notes, R, a.max_diff_chars)
 
     R.append('\n## 怎么用这份报告\n')
     R.append('  逐条判断每处差异属于哪类，然后写进给用户的报告，按重要度排序：\n')

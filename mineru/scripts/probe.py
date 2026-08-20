@@ -14,9 +14,9 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _common import (CIRC, CIRC_RE, block_text, body_blocks, die, discarded_of_type,
-                     find_files, footnote_blocks, load_blocklist, load_layout,
-                     page_number_map, strip_tags, write_report)
+from _common import (CIRC, CIRC_RE, OPENER, TERMINAL, block_text, body_blocks, die,
+                     discarded_of_type, find_files, footnote_blocks, load_blocklist,
+                     load_layout, page_number_map, strip_tags, write_report)
 
 META_PREFIX = ('收稿日期', '作者简介', '基金项目', '通信作者', '引用格式', '作者单位', 'DOI')
 
@@ -26,12 +26,7 @@ def btext(b):
     return strip_tags(b.get('text') or block_text(b)).strip()
 
 
-TERMINAL = '。！？”』》）】…—'
-OPENER = re.compile(r'^\s*(第[一二三四五六七八九十百]+[章节編编篇]|[一二三四五六七八九十]+[、．.]|'
-                    r'[（(]\s*\d+\s*[)）]|\d+\s*[.．、]|附录|绪论|结语|参考|思考题|本章)')
-
-
-def extra_checks(layout, merge, pnum, R):
+def extra_checks(layout, merge, pnum, R, outdir):
     """把踩过的坑做成自动检查，而不是写成让模型每次自己想起来的说明文字。"""
     hits = 0
 
@@ -107,9 +102,28 @@ def extra_checks(layout, merge, pnum, R):
         R.append('\n## [检查] 疑似漏合并的跨页段落，%d 处\n' % len(breaks))
         R.append('  mergeConnections 没记录，但上页结尾无句末标点、下页开头不像新段起头。\n')
         R.append('  这类地方极易被误当成「缺标点」而补一个句号——那是用标点掩盖数据丢失。\n')
-        R.append('  正确做法是把两段接回去。\n')
+        R.append('  build.py 默认会按同一套判据接回去（--no-join 可关），全量清单见 _breaks.tsv，\n')
+        R.append('  接合结果见构建报告。下面只是前 12 条预览。\n')
         for pn, a, b_ in breaks[:12]:
             R.append('  p.%s…%s  ▷接▷  %s…\n' % (pn, a, b_))
+        write_report(os.path.join(outdir, '_breaks.tsv'),
+                     '印刷页\t上页结尾\t下页开头\n'
+                     + ''.join('%s\t%s\t%s\n' % (pn, a.replace('\t', ' '), b_.replace('\t', ' '))
+                               for pn, a, b_ in breaks))
+
+    # 3b) 同页 mergeConnection：合并关系本该跨页，同页出现多半是图注被误接进正文
+    same = [(k, v) for k, v in merge.items() if k[0] == v[0]]
+    if same:
+        hits += 1
+        R.append('\n## [检查] 同页 mergeConnection，%d 条\n' % len(same))
+        R.append('  合并关系本该发生在换页处。同页的两块被接在一起，多半是图注（MinerU 误判为\n')
+        R.append('  正文）被接到了正文段尾——正文会因此多出一句图注，还会凭空多一个页码锚点。\n')
+        R.append('  逐条核对 layout.json 里该页的块序，确认真正的下文是哪一块。\n')
+        for k, v in same:
+            bl = {b.get('index'): b for b in body_blocks(layout[k[0]])}
+            a = strip_tags(block_text(bl[k[1]]))[-26:] if k[1] in bl else '?'
+            b_ = strip_tags(block_text(bl[v[1]]))[:34] if v[1] in bl else '?'
+            R.append('  p.%s  idx%s…%s  ->  idx%s %s\n' % (pnum[k[0]], k[1], a, v[1], b_))
 
     # 4) 标题层级扁平
     lv = collections.Counter(b.get('level') for pg in layout for b in body_blocks(pg)
@@ -118,7 +132,9 @@ def extra_checks(layout, merge, pnum, R):
         hits += 1
         R.append('\n## [检查] 全部 %d 个标题都是 level=%s\n' % (sum(lv.values()), list(lv)[0]))
         R.append('  源里没有可用的层级，需要按「第X章/第X节/一、/1./（1）」的编号形态重建。\n')
-        R.append('  build.py --infer-heading-level 会做这件事，结果仍要复核。\n')
+        R.append('  build.py 在层级完全扁平时会自动重建，结果仍要复核。\n')
+        R.append('  注意：层级「不扁平但自相矛盾」（第一章 H2、第二章 H1）不会触发这条检查，\n')
+        R.append('  build.py 也会照抄源层级——分章前务必自己扫一遍 grep "^#" 的结果。\n')
 
     # 5) 篇幅截断：PDF 未必是整本书
     first_pn, last_pn = pnum[0], pnum[len(layout) - 1]
@@ -136,13 +152,20 @@ def extra_checks(layout, merge, pnum, R):
         R.append('  结尾: …%s\n' % tail[-40:])
         R.append('  务必在 frontmatter 与交付说明里写清实际覆盖范围，别让读者以为是全书。\n')
 
-    # 6) OCR 把普通字符读成了公式
+    # 6) OCR 把普通字符读成了公式。只查 \% 会漏掉 \sim——数值区间 1500~1800 全被它吃掉
     alltxt = ''.join(strip_tags(block_text(b)) for pg in layout for b in body_blocks(pg))
-    tex = len(re.findall(r'\$[^$]{1,40}\$', alltxt)) + alltxt.count('\\%')
-    if tex:
+    kinds = [('$…$ 行内公式', re.findall(r'\$[^$]{1,40}\$', alltxt)),
+             (r'\%  百分号', re.findall(r'\\%', alltxt)),
+             (r'\sim  波浪号（数值区间）', re.findall(r'\\sim', alltxt)),
+             (r'\times / \approx / \pm 等', re.findall(r'\\(?:times|approx|pm|circ|cdot)', alltxt)),
+             ('^{…} / _{…} 上下标', re.findall(r'[\^_]\{', alltxt))]
+    kinds = [(n, len(v)) for n, v in kinds if v]
+    if kinds:
         hits += 1
-        R.append('\n## [检查] 疑似 OCR 误判的公式记法，%d 处\n' % tex)
-        R.append('  例如把百分数读成 $34.5\\%%$。抽查后统一还原为普通文本。\n')
+        R.append('\n## [检查] 疑似 OCR 误判的公式记法，%d 处\n' % sum(n for _, n in kinds))
+        R.append('  抽查后统一还原为普通文本（还原成什么要看全书通例，如 \\sim -> ～）。\n')
+        for n, c in kinds:
+            R.append('  %-28s %d\n' % (n, c))
 
     if not hits:
         R.append('\n## [检查] 6 项自动检查全部未发现异常\n')
@@ -309,7 +332,7 @@ def main():
         for t, n in hdr.most_common(6):
             R.append('  x%-3d %s\n' % (n, t))
 
-    extra_checks(layout, merge, pnum, R)
+    extra_checks(layout, merge, pnum, R, d)
 
     R.append('\n## 下一步\n')
     R.append('  1. 读 _markers.tsv，标出非脚注的圈码序号\n')

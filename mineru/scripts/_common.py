@@ -18,6 +18,27 @@ KEEP_RE = re.compile(r'[㐀-䶿一-鿿A-Za-z0-9' + CIRC + r'□〈〉〔〕]')
 
 TEXTLIKE = ('text', 'ref_text', 'title', 'list', 'index')
 
+# ---- 跨页断段判定：probe 报告和 build 接合必须用同一套判据，否则报告与成品对不上
+# 收尾标点里带上 ：；——「其职责：」后面换页跟一串列举，那是新块不是断句
+TERMINAL = '。！？”』》）】…—：；'
+OPENER = re.compile(r'^\s*(第[一二三四五六七八九十百]+[章节編编篇]|[一二三四五六七八九十]+[、．.]|'
+                    r'[（(]\s*\d+\s*[)）]|\d+\s*[.．、]|附录|绪论|结语|参考|思考题|本章|学术)')
+# 句末的脚注引用不是句末标记：「…近代化。[^11]」是正常段末，不是断句
+TRAIL_REF = re.compile(r'(\[\^\d+\]\s*)+$')
+ANCHOR_RE = re.compile(r'^<!--p\.(-?\d+)-->$')
+# 图、图注、图下小字注：可能夹在断点中间，判定时要跨过去
+FLOAT_PREFIX = ('![', '*', '<small>')
+
+
+def is_break(prev, nxt):
+    """prev 与 nxt 之间的换页是否切断了同一个段落。"""
+    if not prev or not nxt:
+        return False
+    if prev.startswith(('#', '<!--') + FLOAT_PREFIX) or nxt.startswith(('#', '<!--') + FLOAT_PREFIX):
+        return False
+    tail = TRAIL_REF.sub('', prev).rstrip()
+    return bool(tail) and tail[-1] not in TERMINAL and not OPENER.match(nxt)
+
 
 def die(msg):
     print('ERROR: ' + msg)
@@ -29,24 +50,31 @@ def find_files(d):
 
     def one(pattern):
         hits = sorted(glob.glob(os.path.join(d, pattern)))
+        if not hits:
+            hits = sorted(glob.glob(os.path.join(d, '**', pattern), recursive=True))
         return hits[0] if hits else None
 
+    images = os.path.join(d, 'images') if os.path.isdir(os.path.join(d, 'images')) else None
+    if not images:
+        nested_images = sorted(glob.glob(os.path.join(d, '**', 'images'), recursive=True))
+        images = nested_images[0] if nested_images else None
+
     return {
-        'layout': one('layout.json'),
+        'layout': one('layout.json') or one('*_middle.json') or one('middle.json'),
         'block_list': one('block_list.json'),
         'full_md': one('full.md') or one('MinerU_markdown_*.md'),
         'content_list': one('*_content_list.json'),
         'content_list_v2': one('*_content_list_v2.json'),
         'model': one('*_model.json'),
         'origin_pdf': one('*_origin.pdf'),
-        'images': os.path.join(d, 'images') if os.path.isdir(os.path.join(d, 'images')) else None,
+        'images': images,
     }
 
 
 def load_layout(d):
     f = find_files(d)['layout']
     if not f:
-        die('找不到 layout.json——它是正文的唯一可靠来源，没有它无法继续。')
+        die('找不到 layout.json / *_middle.json——它是正文的唯一可靠来源，没有它无法继续。')
     return json.load(open(f, encoding='utf-8'))['pdf_info']
 
 
