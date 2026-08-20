@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c927980b-8598-4da8-8370-ad33a689fdaa",
+  "path": "teach",
+  "path_key": "teach",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "mattpocock/skills/teach",
+    "subpath": "skills\\productivity\\teach",
+    "branch": null
+  }
+}
