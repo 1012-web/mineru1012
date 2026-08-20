@@ -50,24 +50,31 @@ def find_files(d):
 
     def one(pattern):
         hits = sorted(glob.glob(os.path.join(d, pattern)))
+        if not hits:
+            hits = sorted(glob.glob(os.path.join(d, '**', pattern), recursive=True))
         return hits[0] if hits else None
 
+    images = os.path.join(d, 'images') if os.path.isdir(os.path.join(d, 'images')) else None
+    if not images:
+        nested_images = sorted(glob.glob(os.path.join(d, '**', 'images'), recursive=True))
+        images = nested_images[0] if nested_images else None
+
     return {
-        'layout': one('layout.json'),
+        'layout': one('layout.json') or one('*_middle.json') or one('middle.json'),
         'block_list': one('block_list.json'),
         'full_md': one('full.md') or one('MinerU_markdown_*.md'),
         'content_list': one('*_content_list.json'),
         'content_list_v2': one('*_content_list_v2.json'),
         'model': one('*_model.json'),
         'origin_pdf': one('*_origin.pdf'),
-        'images': os.path.join(d, 'images') if os.path.isdir(os.path.join(d, 'images')) else None,
+        'images': images,
     }
 
 
 def load_layout(d):
     f = find_files(d)['layout']
     if not f:
-        die('找不到 layout.json——它是正文的唯一可靠来源，没有它无法继续。')
+        die('找不到 layout.json / *_middle.json——它是正文的唯一可靠来源，没有它无法继续。')
     return json.load(open(f, encoding='utf-8'))['pdf_info']
 
 

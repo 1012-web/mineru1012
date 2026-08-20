@@ -6,7 +6,7 @@
 
 | 文件 | 有什么 | 缺什么 | 什么时候用 |
 |---|---|---|---|
-| `layout.json` | 行级 spans、bbox、置信度、嵌套的图表块、`discarded_blocks`（脚注/页眉/页码） | 跨页段落的合并关系 | **正文与脚注的唯一可靠来源** |
+| `layout.json` / `*_middle.json` | 行级 spans、bbox、置信度、嵌套的图表块、`discarded_blocks`（脚注/页眉/页码） | 跨页段落的合并关系 | **正文与脚注的唯一可靠来源**；前者为旧命名，后者为官方 v4 当前命名 |
 | `block_list.json` | 块级 text、`is_discarded`、`index`、`mergeConnections` | 行级粒度 | 只取 `mergeConnections`（跨页合并） |
 | `full.md` | 现成 markdown | **脚注、页眉、页码全没了**；行级信息已丢失 | 只做对照参考，不当底稿 |
 | `content_list.json` | 扁平块列表、`text_level` | 脚注拼接有缺陷、无合并信息 | 一般用不上 |
@@ -15,7 +15,7 @@
 | `*_origin.pdf` | 原件 | — | **核对与裁图的最终依据** |
 | `images/` | 抽出的图片 | — | 随成品一起拷走 |
 
-## 为什么正文必须从 layout.json 重建
+## 为什么正文必须从 layout.json / *_middle.json 重建
 
 `block_list.json` 和 `content_list*.json` 里的 `text` 是把行拼好、并压缩过空格的。中文没问题，但**换行处如果两边都是数字或字母，就会粘连**：
 
@@ -25,7 +25,7 @@
 block_list 给出:  ……上海辞书出版社 2016 2017 20202022 年版。   ← 2020 和 2022 粘住了
 ```
 
-`layout.json` 保留了每一行的 spans，可以按「两侧都是 ASCII 字母数字才补空格」的规则正确拼接。这个规则在 `_common.py:join_lines`。
+`layout.json` / `*_middle.json` 保留了每一行的 spans，可以按「两侧都是 ASCII 字母数字才补空格」的规则正确拼接。这个规则在 `_common.py:join_lines`。
 
 ## discarded_blocks：full.md 丢掉的东西
 

@@ -1,6 +1,6 @@
 # mineru
 
-把 [MinerU](https://github.com/opendatalab/MinerU) 的 PDF 解析输出整理成高质量 Markdown（Obsidian 格式，也适合喂给 AI）的 Claude Code skill。
+通过 [MinerU](https://github.com/opendatalab/MinerU) 精准解析 API 获取 PDF 解析产物，再整理成高质量 Markdown（Obsidian 格式，也适合喂给 AI）的 Claude Code skill。
 
 ## 解决什么问题
 
@@ -20,6 +20,9 @@ MinerU 会输出一份 `full.md`，但它把页眉、页码、**脚注**标记�
 在 Claude Code 中，指向一个 MinerU 输出目录并说明需求即可，skill 会自动触发。手动跑脚本：
 
 ```bash
+python scripts/mineru_api.py configure                    # 首次安全保存 API Token
+python scripts/mineru_api.py submit a.pdf -o MinerU       # 上传、轮询、下载并解压
+python scripts/mineru_api.py usage                        # 本机估算的当日额度
 python scripts/probe.py <mineru输出目录>              # 探查 + 六项自动检查
 python scripts/build.py <目录> -o _skeleton.md        # 重建骨架
 python scripts/verify.py <成品.md>                    # 结构自检
@@ -27,7 +30,9 @@ python scripts/diff_report.py <目录> <成品.md>        # 交付前逐字符�
 python scripts/crop_pdf.py <origin.pdf> --page 2 --rect 65,545,300,559 -o crop.png
 ```
 
-脚本把报告写成 UTF-8 文件、stdout 只打一行 ASCII——Windows 控制台是 GBK，中文直接 print 会乱码。
+脚本把报告写成 UTF-8 文件、stdout 只打印 ASCII 状态行——Windows 控制台是 GBK，中文直接 print 会乱码。
+
+精准 API 单文件限制为 200 MB、200 页。`mineru_api.py` 会保留原 PDF，以页面对象复制方式无损拆分超限文件，并在输出目录的 `_upload_cache/` 按来源指纹复用分卷；完成后报告当日本机追踪的解析文件数、页数和估算剩余额度。官方当前定义是每日解析文件总数由基础额度与额外申请额度相加（默认 5000 份），每日 1000 页高优先级；超出高优先级页数后转入普通队列。官方未提供用量查询端点，因此剩余量明确标为本机估算。
 
 ## 三条红线
 
@@ -40,14 +45,18 @@ python scripts/crop_pdf.py <origin.pdf> --page 2 --rect 65,545,300,559 -o crop.p
 ```
 SKILL.md                      主流程
 scripts/
+  mineru_api.py               精准 API 配置、上传、轮询、下载、拆分与用量报告
   probe.py                    探查、圈码↔脚注对齐审计、六项自动检查
   build.py                    从 layout.json 重建骨架
   verify.py                   结构自检
   diff_report.py              交付前改动比对
   crop_pdf.py                 裁图核对 / 剥离文字层供重跑 OCR
 references/
+  mineru-api.md               精准 API 限制、端点、配置与报告语义
   mineru-outputs.md           六个产物文件各自有什么、缺什么
   templates.md                frontmatter / AI 校注 / 改动报告 模板
+tests/
+  test_mineru_api.py          无外部调用的 API 上传/轮询/下载端到端测试
 ```
 
 ## 状态

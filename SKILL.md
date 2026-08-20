@@ -1,6 +1,6 @@
 ---
 name: mineru
-description: 把 MinerU 的 PDF 解析输出目录整理成高质量 Markdown（Obsidian 格式，也适合喂给 AI）——补回 full.md 丢失的脚注、页码与期刊元数据，还原被吞掉的标点，生成 frontmatter、[^n] 脚注和交付前改动报告。当用户提到 MinerU、mineru 输出、full.md、block_list.json、layout.json、content_list.json，或手上有 PDF 解析结果要转 Markdown/Obsidian、要“把 json 的信息合并进 markdown”、要整理论文/专著/古籍/期刊文献的解析结果时，都应该使用这个 skill——即使用户没有明说“MinerU”这个词，只要目录里有 layout.json + block_list.json 这套组合，就是它。
+description: 通过 MinerU 精准解析 API 获取 PDF 解析产物，并把输出目录整理成高质量 Markdown（Obsidian 格式，也适合喂给 AI）——自动处理 API 上传限制和结果下载，补回 full.md 丢失的脚注、页码与期刊元数据，还原被吞掉的标点，生成 frontmatter、[^n] 脚注和交付前改动报告。当用户要用 MinerU API 解析 PDF，或提到 MinerU 输出、full.md、block_list.json、layout.json、middle.json、content_list.json、PDF 转 Markdown/Obsidian、把 JSON 信息合并进 Markdown、整理论文/专著/古籍/期刊文献时使用。
 ---
 
 # MinerU 输出整理
@@ -11,9 +11,50 @@ description: 把 MinerU 的 PDF 解析输出目录整理成高质量 Markdown（
 
 **`full.md` 是残缺品，不要拿它当底稿。** MinerU 把页眉、页码、脚注标记为 `is_discarded`，`full.md` 直接扔了——一篇 12 页论文可能因此丢 60 条脚注，一本 200 页的书丢 300 条。
 
-**`layout.json` 是唯一可靠的正文来源**（只有它保留行级 spans），`block_list.json` 用来取跨页合并关系，`full.md` 只作对照。细节见 `references/mineru-outputs.md`。
+**`layout.json`（新版官方命名为 `*_middle.json`）是唯一可靠的正文来源**（只有它保留行级 spans），旧产物若有 `block_list.json`，只用它取跨页合并关系；`full.md` 只作对照。细节见 `references/mineru-outputs.md`。
 
 脚本一律把报告写成 UTF-8 文件、stdout 只打一行 ASCII——Windows 控制台是 GBK，中文直接 print 会变乱码。**用 Read 工具读报告文件。**
+
+## 两种入口
+
+- 用户给的是 PDF，并明确要求用 MinerU/API 解析：走下方“精准解析 API”流程，取得完整 ZIP 后再整理。
+- 用户给的是已经解压的 MinerU 输出目录：直接从“探查与审计”开始。
+
+仅仅提到、阅读或询问 PDF 不构成上传授权。只有用户明确要求用 MinerU 处理该文件时，才可把文件发送到外部 MinerU 服务。
+
+## 精准解析 API
+
+详细端点、限制和报告字段见 `references/mineru-api.md`。重复工作一律使用 `scripts/mineru_api.py`，不要临时拼 curl。
+
+### 首次配置
+
+Token 不准让用户贴进聊天、命令参数、仓库或 Markdown。让用户在自己的终端运行一次：
+
+```bash
+python <skill>/scripts/mineru_api.py configure
+```
+
+脚本用隐藏输入读取 Token；Windows 通过 DPAPI 加密，其他平台写入权限受限的用户配置文件。也可从当前进程的 `MINERU_API_TOKEN` 读取。默认额度定义为每日 5000 个解析文件、1000 个高优先级解析页；若用户后台的“基础额度 + 额外申请额度”不同，用配置参数覆盖。
+
+### 此后提交 PDF
+
+```bash
+python <skill>/scripts/mineru_api.py submit a.pdf [b.pdf ...] -o <输出目录>
+```
+
+客户端必须完成这些事：
+
+1. 用 `pypdf` 检查页数、加密状态和文字层；扫描件自动开启 OCR。
+2. 原 PDF 永不改动。超过 200 页或 200 MB 时，以页面对象复制方式无损拆成合规分卷；分卷按源文件路径、大小和修改时间指纹缓存在输出目录的 `_upload_cache/`，再次提交同一文件直接复用。单批最多 50 个本地文件。
+3. 调用 `/api/v4/file-urls/batch`，把文件 PUT 到预签名地址，轮询 `/api/v4/extract-results/batch/{batch_id}`。
+4. 下载并安全解压 `full_zip_url`；输出重名时另起名字，不覆盖旧结果。
+5. 把实际上传分卷作为 `*_origin.pdf` 放进对应解压目录，写 `_mineru_api_report_*.json`；stdout 只报告 ASCII 状态。中断后用 `resume <batch_id>` 继续。
+
+若运行环境缺少 `pypdf`，由执行者一次性安装 `python -m pip install pypdf`；不要把依赖安装变成用户每次提交 PDF 时的手工步骤。
+
+完成后必须读报告并告诉用户：成功/失败文件、输入页数、实际上传分卷数、输出目录、当日本机已追踪文件数与页数、估算剩余额度。**“剩余”必须称为本机估算**：官方文档没有用量查询端点，无法知道其他设备或官网操作产生的消耗。超过 1000 个高优先级页后任务仍可提交，只会进入普通队列；两项额度每日 0 点（UTC+8）重置。
+
+取得 ZIP 并解压后，不要交付 `full.md`；继续执行下面的重建流程。
 
 ## 流程
 
