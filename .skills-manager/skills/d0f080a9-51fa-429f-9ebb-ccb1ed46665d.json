@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d0f080a9-51fa-429f-9ebb-ccb1ed46665d",
+  "path": "wp-block-themes-2",
+  "path_key": "wp-block-themes-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-block-themes",
+    "branch": null
+  }
+}

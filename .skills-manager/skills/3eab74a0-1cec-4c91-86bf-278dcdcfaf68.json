@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3eab74a0-1cec-4c91-86bf-278dcdcfaf68",
+  "path": "blueprint-2",
+  "path_key": "blueprint-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\blueprint",
+    "branch": null
+  }
+}

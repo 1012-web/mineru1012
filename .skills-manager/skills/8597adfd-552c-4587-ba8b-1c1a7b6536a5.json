@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8597adfd-552c-4587-ba8b-1c1a7b6536a5",
+  "path": "wpds-2",
+  "path_key": "wpds-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wpds",
+    "branch": null
+  }
+}

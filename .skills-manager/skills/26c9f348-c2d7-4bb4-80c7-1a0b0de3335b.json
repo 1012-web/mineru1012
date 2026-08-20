@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "26c9f348-c2d7-4bb4-80c7-1a0b0de3335b",
+  "path": "wp-phpstan-2",
+  "path_key": "wp-phpstan-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-phpstan",
+    "branch": null
+  }
+}

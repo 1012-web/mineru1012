@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6e708154-229a-41e6-b6bb-f9547ad33a03",
+  "path": "wp-patterns",
+  "path_key": "wp-patterns",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/wordPress/agent-skills",
+    "subpath": "skills\\wp-patterns",
+    "branch": null
+  }
+}
