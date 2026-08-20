@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "fc3ca89f-3fee-403d-8c36-d56caf11316e",
+  "path": "wp-phpstan",
+  "path_key": "wp-phpstan",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

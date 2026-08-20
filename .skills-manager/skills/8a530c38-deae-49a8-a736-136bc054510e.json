@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8a530c38-deae-49a8-a736-136bc054510e",
+  "path": "wrangler",
+  "path_key": "wrangler",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

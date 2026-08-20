@@ -1,0 +1,2 @@
+[    5506ms] [INFO] %cDownload the React DevTools for a better development experience: https://fb.me/react-devtools font-weight:bold @ https://demo.playwright.dev/todomvc/js/bundle.js:20881
+[    6118ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://demo.playwright.dev/favicon.ico:0

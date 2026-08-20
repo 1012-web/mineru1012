@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "33146343-f826-47cd-9248-1c2fda8687ee",
+  "path": "wp-plugin-development",
+  "path_key": "wp-plugin-development",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

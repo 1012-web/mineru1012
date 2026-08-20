@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "22c64fcd-0945-4fd9-a9c5-fd51c7aac900",
+  "path": "wp-playground",
+  "path_key": "wp-playground",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

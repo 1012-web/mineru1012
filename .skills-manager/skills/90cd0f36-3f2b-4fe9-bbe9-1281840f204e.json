@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "90cd0f36-3f2b-4fe9-bbe9-1281840f204e",
+  "path": "wpds",
+  "path_key": "wpds",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

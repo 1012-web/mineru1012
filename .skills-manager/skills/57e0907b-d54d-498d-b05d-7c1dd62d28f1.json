@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "57e0907b-d54d-498d-b05d-7c1dd62d28f1",
+  "path": "firecrawl-build-scrape",
+  "path_key": "firecrawl-build-scrape",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

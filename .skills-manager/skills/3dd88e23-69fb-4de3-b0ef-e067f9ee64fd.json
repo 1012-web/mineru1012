@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3dd88e23-69fb-4de3-b0ef-e067f9ee64fd",
+  "path": "firecrawl-market-research",
+  "path_key": "firecrawl-market-research",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

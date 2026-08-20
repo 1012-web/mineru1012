@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6e5b975e-10df-4476-aa5f-a6852cc95278",
+  "path": "wp-performance",
+  "path_key": "wp-performance",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

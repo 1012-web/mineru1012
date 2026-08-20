@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b8914eb0-6607-469a-a0f8-be08956860c1",
+  "path": "wp-wpcli-and-ops",
+  "path_key": "wp-wpcli-and-ops",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

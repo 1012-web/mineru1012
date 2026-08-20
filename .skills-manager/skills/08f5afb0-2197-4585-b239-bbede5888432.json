@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "08f5afb0-2197-4585-b239-bbede5888432",
+  "path": "firecrawl-website-design-clone",
+  "path_key": "firecrawl-website-design-clone",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

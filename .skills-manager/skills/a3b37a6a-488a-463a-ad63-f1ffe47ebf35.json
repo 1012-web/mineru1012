@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a3b37a6a-488a-463a-ad63-f1ffe47ebf35",
+  "path": "wp-project-triage",
+  "path_key": "wp-project-triage",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

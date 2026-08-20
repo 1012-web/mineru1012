@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8004d357-5071-4e69-9a6e-0ccf48266df2",
+  "path": "firecrawl-lead-research",
+  "path_key": "firecrawl-lead-research",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

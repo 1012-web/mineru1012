@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9af3ceb6-85a7-4e71-939c-1448f007df0e",
+  "path": "wp-abilities-verify",
+  "path_key": "wp-abilities-verify",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5f5d4513-b207-43bb-8182-f86682f51fe5",
+  "path": "cnki-advanced-search",
+  "path_key": "cnki-advanced-search",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

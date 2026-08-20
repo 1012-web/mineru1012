@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b55754b6-3e69-4fe4-bf38-4086043f5f46",
+  "path": "blueprint",
+  "path_key": "blueprint",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "_说明": "国家图书馆（20260802 批次）采集 JSON → 批次总目填充的字段对应表。采集阶段不受此约束，各馆照原貌采；此文件只告诉填充脚本『这个馆的字段叫什么』。",
+  "records_path": null,
+  "id_fallback": "index",
+  "fields": {
+    "id": "resourceId",
+    "name": "name",
+    "description": "description",
+    "entry_url": "intranetUrl",
+    "external_url": "extranetUrl",
+    "source_page": "sourcePage"
+  },
+  "access": {
+    "field": "accessMethods",
+    "inlibrary_contains": ["局域网"],
+    "offsite_contains": ["互联网"]
+  },
+  "remark_tags": [
+    { "label": "访问方式", "key": "accessMethods" },
+    { "label": "资源ID", "key": "resourceId" },
+    { "label": "来源页", "key": "sourcePage" }
+  ]
+}

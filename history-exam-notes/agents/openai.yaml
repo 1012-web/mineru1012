@@ -1,0 +1,6 @@
+interface:
+  display_name: "历史学考研笔记"
+  short_description: "把历史教材与标注整理成可口述通史、考点卡和默写反馈体系"
+  default_prompt: "使用 $history-exam-notes 把这章历史教材整理成通史主轴和考点卡。"
+policy:
+  allow_implicit_invocation: true

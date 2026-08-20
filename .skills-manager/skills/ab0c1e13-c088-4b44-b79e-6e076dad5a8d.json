@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ab0c1e13-c088-4b44-b79e-6e076dad5a8d",
+  "path": "mineru",
+  "path_key": "mineru",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
