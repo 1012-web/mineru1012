@@ -1,5 +1,5 @@
 ---
-name: mineru
+name: mineru1012
 description: 通过 MinerU 精准解析 API 获取 PDF 解析产物，并把输出目录整理成高质量 Markdown（Obsidian 格式，也适合喂给 AI）——自动处理 API 上传限制和结果下载，补回 full.md 丢失的脚注、页码与期刊元数据，还原被吞掉的标点，生成 frontmatter、[^n] 脚注和交付前改动报告。当用户要用 MinerU API 解析 PDF，或提到 MinerU 输出、full.md、block_list.json、layout.json、middle.json、content_list.json、PDF 转 Markdown/Obsidian、把 JSON 信息合并进 Markdown、整理论文/专著/古籍/期刊文献时使用。
 ---
 
